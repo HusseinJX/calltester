@@ -45,7 +45,7 @@ CRITICAL: This is a phone call. Your response must be 1-5 words maximum. No exce
   console.log(`\n🧠 Sending to OpenAI (${messages.length} messages, model: ${process.env.AI_MODEL || 'gpt-4o'})`);
 
   const response = await getClient().chat.completions.create({
-    model: process.env.AI_MODEL || 'gpt-4o',
+    model: process.env.AI_MODEL || 'gpt-4o-mini',
     max_tokens: 30,
     messages
   });

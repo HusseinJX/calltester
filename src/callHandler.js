@@ -63,9 +63,8 @@ export async function handleGather(req, res) {
       input: 'speech',
       action: '/voice/gather',
       method: 'POST',
-      speechTimeout: 'auto',
-      language: 'en-US',
-      enhanced: true
+      speechTimeout: '1',
+      language: 'en-US'
     });
     res.type('text/xml');
     return res.send(response.toString());
@@ -110,9 +109,8 @@ export async function handleGather(req, res) {
       input: 'speech',
       action: '/voice/gather',
       method: 'POST',
-      speechTimeout: 'auto',
-      language: 'en-US',
-      enhanced: true
+      speechTimeout: '1',
+      language: 'en-US'
     });
 
     // Fallback if no speech detected
