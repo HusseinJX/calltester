@@ -418,11 +418,23 @@
       } else if (msg.type === 'audio') {
         if (msg.callSid === activeCallSid) playMulaw(msg.payload);
       } else if (msg.type === 'call_status') {
-        if (msg.callSid === activeCallSid && ['completed','failed','no-answer','busy','canceled'].includes(msg.status)) {
+        const isTerminal = ['completed','failed','no-answer','busy','canceled'].includes(msg.status);
+
+        // If the active call ended, reset the live UI
+        if (msg.callSid === activeCallSid && isTerminal) {
           activeCallSid = null;
           setInputVisible(false);
           setAudioIndicator(false);
         }
+
+        // If a pending (ringing) call ended from the caller side,
+        // clear the overlay so we don't keep showing Accept/Decline.
+        if (msg.callSid === pendingCallSid && isTerminal) {
+          pendingCallSid = null;
+          const overlay = document.getElementById('incomingOverlay');
+          if (overlay) overlay.classList.remove('visible');
+        }
+
         fetchCalls();
       }
     };

@@ -15,12 +15,9 @@ export async function handleIncomingCall(req, res) {
   // Notify browser to show incoming call UI
   notifyBrowsers({ type: 'incoming', callSid: CallSid, from: From, to: To });
 
+  // Answer the call but keep the caller on silent hold while
+  // the tester decides to accept or decline.
   const response = new VoiceResponse();
-  const voice = process.env.VOICE || 'Polly.Matthew';
-
-  // Immediately answer the call with a brief message so the caller
-  // stops hearing ringing, then put them on hold while the tester decides.
-  response.say({ voice }, process.env.INITIAL_GREETING || 'Please hold while we connect you.');
   response.pause({ length: 29 });
   response.redirect({ method: 'POST' }, '/voice/hold');
 
