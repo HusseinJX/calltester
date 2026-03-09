@@ -479,8 +479,14 @@
     document.getElementById('incomingOverlay').classList.remove('visible');
     if (pendingCallSid) {
       try {
-        await fetch(`/api/calls/${pendingCallSid}/hangup`, { method: 'POST' });
-      } catch (e) {}
+        const res = await fetch(`/api/calls/${pendingCallSid}/hangup`, { method: 'POST' });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+          alert('Failed to decline: ' + err.error);
+        }
+      } catch (e) {
+        alert('Failed to decline: ' + e.message);
+      }
     }
     pendingCallSid = null;
     fetchCalls();

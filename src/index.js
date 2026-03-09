@@ -83,7 +83,15 @@ app.post('/api/calls/:callSid/hangup', async (req, res) => {
   const { callSid } = req.params;
   try {
     const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    await client.calls(callSid).update({ status: 'completed' });
+    // For in-progress calls Twilio expects "completed".
+    // For ringing/queued calls Twilio expects "canceled".
+    // Try "completed" first, then fall back to "canceled" if needed.
+    try {
+      await client.calls(callSid).update({ status: 'completed' });
+    } catch (err1) {
+      console.warn(`⚠️ Failed to complete call ${callSid}, trying cancel:`, err1.message);
+      await client.calls(callSid).update({ status: 'canceled' });
+    }
     endCall(callSid, 'completed');
     res.json({ success: true });
   } catch (err) {
