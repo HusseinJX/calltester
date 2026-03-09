@@ -9,7 +9,7 @@
     "tunnel": "npx localtunnel --port 3000"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.78.0",
+    "openai": "^4.52.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "twilio": "^5.0.0",
