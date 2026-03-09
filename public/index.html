@@ -371,8 +371,17 @@
 </div>
 
 <header>
-  <div class="status-dot"></div>
-  <h1>Call Answering</h1>
+  <div style="display:flex; align-items:center; gap:12px; flex:1;">
+    <div class="status-dot"></div>
+    <h1>Call Answering</h1>
+  </div>
+  <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:#888;">
+    <span>Mode</span>
+    <select id="answerModeSelect" style="background:#111;border:1px solid #333;color:#e0e0e0;font-size:12px;padding:4px 8px;border-radius:6px;">
+      <option value="manual">Tester controls</option>
+      <option value="ai">AI auto-answer</option>
+    </select>
+  </div>
 </header>
 
 <div class="layout">
@@ -403,6 +412,7 @@
   let calls           = [];
   let renderedCallSid = null;
   let renderedMsgCount = 0;
+  let answerMode      = 'manual';
 
   // ─── WebSocket to server ──────────────────────────────────────────────────
   let ws = null;
@@ -445,16 +455,61 @@
 
   connectWs();
 
+  // Load current settings from the server and wire up the mode switcher
+  async function loadSettings() {
+    try {
+      const res = await fetch('/api/settings');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.answerMode === 'ai' || data.answerMode === 'manual') {
+        answerMode = data.answerMode;
+        const sel = document.getElementById('answerModeSelect');
+        if (sel) sel.value = answerMode;
+      }
+    } catch (e) {
+      console.warn('Failed to load settings', e);
+    }
+  }
+
+  async function updateSettings(mode) {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answerMode: mode })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        answerMode = data.answerMode || mode;
+      }
+    } catch (e) {
+      console.warn('Failed to update settings', e);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const sel = document.getElementById('answerModeSelect');
+    if (sel) {
+      sel.addEventListener('change', (e) => {
+        const mode = e.target.value === 'ai' ? 'ai' : 'manual';
+        answerMode = mode;
+        updateSettings(mode);
+      });
+    }
+    loadSettings();
+  });
+
   // ─── Incoming call UI ─────────────────────────────────────────────────────
   function showIncoming(callSid, from, to) {
-    // Only show if not already handling a live call
-    if (activeCallSid) return;
-    pendingCallSid = callSid;
-    pendingFrom    = from;
-    pendingTo      = to;
-    document.getElementById('incomingFrom').textContent = from || 'Unknown';
-    document.getElementById('incomingTo').textContent   = to ? `→ ${to}` : '';
-    document.getElementById('incomingOverlay').classList.add('visible');
+    // Only show overlay in manual mode and if not already in a live call
+    if (answerMode === 'manual' && !activeCallSid) {
+      pendingCallSid = callSid;
+      pendingFrom    = from;
+      pendingTo      = to;
+      document.getElementById('incomingFrom').textContent = from || 'Unknown';
+      document.getElementById('incomingTo').textContent   = to ? `→ ${to}` : '';
+      document.getElementById('incomingOverlay').classList.add('visible');
+    }
     fetchCalls();
   }
 
@@ -712,14 +767,27 @@
 
         detail.messages.slice(renderedMsgCount).forEach(msg => {
           const el = document.createElement('div');
-          // Map roles: 'tester' = you (right), anything else = caller (left)
-          const side = msg.role === 'tester' ? 'tester' : 'caller';
+
+          // Layout:
+          // - In AI mode: "agent" messages on the right, caller/tester on the left
+          // - In manual mode: anything that isn't an explicit "caller" is treated as you
+          const isAiMode = answerMode === 'ai';
+          const isRight = isAiMode ? (msg.role === 'agent') : (msg.role !== 'caller');
+          const side = isRight ? 'tester' : 'caller'; // reuse existing CSS classes
+
+          let whoLabel;
+          if (isAiMode) {
+            whoLabel = isRight ? 'AI' : 'Caller';
+          } else {
+            whoLabel = isRight ? 'You' : 'Caller';
+          }
+
           el.className = `message ${side}`;
           el.innerHTML = `
-            <div class="message-avatar">${side === 'tester' ? 'You' : 'C'}</div>
+            <div class="message-avatar">${isRight ? (isAiMode ? 'AI' : 'You') : 'C'}</div>
             <div>
               <div class="message-bubble">${escapeHtml(msg.content)}</div>
-              <div class="message-time">${side === 'tester' ? 'You' : 'Caller'} · ${formatTime(msg.timestamp)}</div>
+              <div class="message-time">${whoLabel} · ${formatTime(msg.timestamp)}</div>
             </div>`;
           body.appendChild(el);
         });

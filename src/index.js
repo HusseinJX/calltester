@@ -18,6 +18,8 @@ import {
 } from './callHandler.js';
 import { getCallLogs, getCallDetails, addMessage, endCall } from './callLogger.js';
 import { mediaSockets, browserSockets, notifyBrowsers } from './wsState.js';
+import { getAnswerMode, setAnswerMode } from './settings.js';
+import { generateResponse } from './aiResponder.js';
 
 config();
 
@@ -45,6 +47,21 @@ app.post('/voice/status', handleCallStatus);
 // API: Get all call logs
 app.get('/api/calls', (req, res) => {
   res.json(getCallLogs());
+});
+
+// API: Get current settings
+app.get('/api/settings', (req, res) => {
+  res.json({ answerMode: getAnswerMode() });
+});
+
+// API: Update settings
+app.post('/api/settings', (req, res) => {
+  const { answerMode } = req.body || {};
+  if (!['manual', 'ai'].includes(answerMode)) {
+    return res.status(400).json({ error: 'answerMode must be "manual" or "ai"' });
+  }
+  setAnswerMode(answerMode);
+  res.json({ answerMode: getAnswerMode() });
 });
 
 // API: Get specific call details
@@ -250,9 +267,33 @@ async function transcribeCallerAudio(callSid, mulawBuffer) {
     const text = (response.text || '').trim();
     if (!text) return;
 
-    // Store as a "caller" message so it appears on the left-hand side
-    addMessage(callSid, 'caller', text);
-    notifyBrowsers({ type: 'transcript', callSid, role: 'caller', text });
+    // In AI mode, treat the caller as "tester" to match the original
+    // logging semantics (AI agent vs tester). In manual mode, keep
+    // using "caller" so we can distinguish sources.
+    const role = getAnswerMode() === 'ai' ? 'tester' : 'caller';
+
+    addMessage(callSid, role, text);
+    notifyBrowsers({ type: 'transcript', callSid, role, text });
+
+    // In AI mode, let the AI respond automatically using the same
+    // pipeline as the original auto-answer mode.
+    if (getAnswerMode() === 'ai' && process.env.OPENAI_API_KEY && BASE_URL) {
+      try {
+        const persona = process.env.TESTER_PERSONA || 'You are a helpful agent.';
+        const reply = await generateResponse(callSid, text, persona);
+        if (reply?.trim()) {
+          addMessage(callSid, 'agent', reply.trim());
+          const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+          await client.calls(callSid).update({
+            url: `${BASE_URL}/voice/say?text=${encodeURIComponent(reply.trim())}`,
+            method: 'POST'
+          });
+          notifyBrowsers({ type: 'transcript', callSid, role: 'agent', text: reply.trim() });
+        }
+      } catch (err) {
+        console.warn('AI responder error:', err.message);
+      }
+    }
   } catch (err) {
     console.warn('Failed to transcribe audio:', err.message);
   }

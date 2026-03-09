@@ -1,6 +1,7 @@
 import twilio from 'twilio';
 import { logCall, addMessage, endCall } from './callLogger.js';
 import { notifyBrowsers } from './wsState.js';
+import { getAnswerMode } from './settings.js';
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
@@ -15,15 +16,23 @@ export async function handleIncomingCall(req, res) {
   // Notify browser to show incoming call UI
   notifyBrowsers({ type: 'incoming', callSid: CallSid, from: From, to: To });
 
-  // Answer the call with a very short greeting so Twilio
-  // considers the call in-progress (so Accept/Decline via
-  // REST API work reliably), then put the caller on hold.
+  const mode = getAnswerMode();
   const response = new VoiceResponse();
   const voice = process.env.VOICE || 'Polly.Matthew';
   const greeting = process.env.INITIAL_GREETING || 'Please hold while we connect you.';
-  response.say({ voice }, greeting);
-  response.pause({ length: 29 });
-  response.redirect({ method: 'POST' }, '/voice/hold');
+
+  if (mode === 'ai') {
+    // Auto-answer with greeting, then redirect straight into
+    // the media stream so the AI can handle the call.
+    response.say({ voice }, greeting);
+    response.redirect({ method: 'POST' }, '/voice/stream');
+  } else {
+    // Manual tester mode — answer and keep the caller on hold
+    // until the tester clicks Accept.
+    response.say({ voice }, greeting);
+    response.pause({ length: 29 });
+    response.redirect({ method: 'POST' }, '/voice/hold');
+  }
 
   res.type('text/xml');
   res.send(response.toString());
