@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Call Tester</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 300px;
+      border-right: 1px solid #222;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 14px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666;
+      border-bottom: 1px solid #222;
+    }
+
+    .call-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .call-item {
+      padding: 14px 16px;
+      border-bottom: 1px solid #1a1a1a;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .call-item:hover { background: #161616; }
+    .call-item.active { background: #1a1f2e; border-left: 2px solid #3b82f6; }
+
+    .call-item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .call-from {
+      font-size: 13px;
+      font-weight: 500;
+      color: #e0e0e0;
+    }
+
+    .call-status {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+
+    .status-completed { background: #14532d; color: #4ade80; }
+    .status-in-progress { background: #1e3a5f; color: #60a5fa; }
+    .status-failed { background: #450a0a; color: #f87171; }
+    .status-no-answer { background: #292524; color: #a8a29e; }
+
+    .call-meta {
+      font-size: 11px;
+      color: #555;
+    }
+
+    .empty-list {
+      padding: 40px 16px;
+      text-align: center;
+      color: #444;
+      font-size: 13px;
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .main-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      gap: 12px;
+    }
+
+    .main-placeholder svg { opacity: 0.3; }
+    .main-placeholder p { font-size: 14px; }
+
+    .transcript-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .transcript-header-left h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .transcript-header-left p {
+      font-size: 11px;
+      color: #555;
+    }
+
+    .call-stats {
+      display: flex;
+      gap: 16px;
+    }
+
+    .stat {
+      text-align: right;
+    }
+
+    .stat-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e0e0e0;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .transcript-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      display: flex;
+      gap: 10px;
+      max-width: 75%;
+    }
+
+    .message.agent { align-self: flex-start; }
+    .message.tester { align-self: flex-end; flex-direction: row-reverse; }
+
+    .message-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .message.agent .message-avatar { background: #1e3a5f; color: #60a5fa; }
+    .message.tester .message-avatar { background: #14532d; color: #4ade80; }
+
+    .message-bubble {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .message.agent .message-bubble {
+      background: #1a1a1a;
+      color: #e0e0e0;
+      border-top-left-radius: 3px;
+    }
+
+    .message.tester .message-bubble {
+      background: #1a2744;
+      color: #e0e0e0;
+      border-top-right-radius: 3px;
+    }
+
+    .message-time {
+      font-size: 10px;
+      color: #444;
+      margin-top: 4px;
+    }
+
+    .message.tester .message-time { text-align: right; }
+
+    .no-transcript {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #444;
+      font-size: 13px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="status-dot"></div>
+  <h1>Call Tester</h1>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-header">Calls</div>
+    <div class="call-list" id="callList">
+      <div class="empty-list">No calls yet.<br>Waiting for inbound calls...</div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div class="main-placeholder">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.64A2 2 0 012 .92h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+      </svg>
+      <p>Select a call to view transcript</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  let selectedCallSid = null;
+  let calls = [];
+
+  async function fetchCalls() {
+    try {
+      const res = await fetch('/api/calls');
+      const data = await res.json();
+
+      // Sort newest first
+      data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+
+      const changed = JSON.stringify(data) !== JSON.stringify(calls);
+      calls = data;
+
+      if (changed) renderCallList();
+
+      // Refresh active transcript if call is in-progress
+      if (selectedCallSid) {
+        const active = calls.find(c => c.callSid === selectedCallSid);
+        if (active?.status === 'in-progress') {
+          renderTranscript(selectedCallSid);
+        }
+      }
+    } catch (e) {}
+  }
+
+  function renderCallList() {
+    const list = document.getElementById('callList');
+
+    if (calls.length === 0) {
+      list.innerHTML = '<div class="empty-list">No calls yet.<br>Waiting for inbound calls...</div>';
+      return;
+    }
+
+    list.innerHTML = calls.map(call => `
+      <div class="call-item ${call.callSid === selectedCallSid ? 'active' : ''}"
+           onclick="selectCall('${call.callSid}')">
+        <div class="call-item-top">
+          <span class="call-from">${call.from || 'Unknown'}</span>
+          <span class="call-status status-${call.status.replace('-', '-')}">${call.status}</span>
+        </div>
+        <div class="call-meta">
+          ${formatTime(call.startTime)} · ${call.messageCount} messages
+          ${call.duration ? ` · ${call.duration}s` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function selectCall(callSid) {
+    selectedCallSid = callSid;
+    renderCallList();
+    renderTranscript(callSid);
+  }
+
+  async function renderTranscript(callSid) {
+    const main = document.getElementById('main');
+    const call = calls.find(c => c.callSid === callSid);
+
+    try {
+      const res = await fetch(`/api/calls/${callSid}`);
+      if (!res.ok) {
+        main.innerHTML = `<div class="main-placeholder"><p>Call not found (server may have restarted)</p></div>`;
+        return;
+      }
+      const detail = await res.json();
+
+      const statusClass = `status-${detail.status}`;
+
+      main.innerHTML = `
+        <div class="transcript-header">
+          <div class="transcript-header-left">
+            <h2>${detail.from || 'Unknown'} → ${detail.to || 'Unknown'}</h2>
+            <p>${detail.callSid} · ${formatTime(detail.startTime)}</p>
+          </div>
+          <div class="call-stats">
+            <div class="stat">
+              <div class="stat-value"><span class="call-status ${statusClass}">${detail.status}</span></div>
+              <div class="stat-label">Status</div>
+            </div>
+            ${detail.duration ? `
+            <div class="stat">
+              <div class="stat-value">${detail.duration}s</div>
+              <div class="stat-label">Duration</div>
+            </div>` : ''}
+            <div class="stat">
+              <div class="stat-value">${detail.messages.length}</div>
+              <div class="stat-label">Messages</div>
+            </div>
+          </div>
+        </div>
+        <div class="transcript-body" id="transcriptBody">
+          ${detail.messages.length === 0
+            ? '<div class="no-transcript">No messages yet</div>'
+            : detail.messages.map(msg => `
+              <div class="message ${msg.role}">
+                <div class="message-avatar">${msg.role === 'agent' ? 'AI' : 'T'}</div>
+                <div>
+                  <div class="message-bubble">${escapeHtml(msg.content)}</div>
+                  <div class="message-time">${msg.role === 'agent' ? 'AI Agent' : 'Tester'} · ${formatTime(msg.timestamp)}</div>
+                </div>
+              </div>
+            `).join('')
+          }
+        </div>
+      `;
+
+      // Scroll to bottom
+      const body = document.getElementById('transcriptBody');
+      if (body) body.scrollTop = body.scrollHeight;
+
+    } catch (e) {
+      console.error('renderTranscript error:', e);
+      main.innerHTML = `<div class="main-placeholder"><p>Error: ${e.message}</p></div>`;
+    }
+  }
+
+  function formatTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function escapeHtml(str) {
+    return (str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Poll every 2 seconds
+  fetchCalls();
+  setInterval(fetchCalls, 2000);
+</script>
+</body>
+</html>

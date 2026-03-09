@@ -56,6 +56,21 @@ export async function handleIncomingCall(req, res) {
 export async function handleGather(req, res) {
   const { CallSid, SpeechResult, Confidence } = req.body;
 
+  // No speech detected — redirect back to gather
+  if (!SpeechResult) {
+    const response = new VoiceResponse();
+    response.gather({
+      input: 'speech',
+      action: '/voice/gather',
+      method: 'POST',
+      speechTimeout: 'auto',
+      language: 'en-US',
+      enhanced: true
+    });
+    res.type('text/xml');
+    return res.send(response.toString());
+  }
+
   console.log(`\n🎤 Agent said: "${SpeechResult}" (confidence: ${Confidence})`);
 
   // Log what the AI agent said

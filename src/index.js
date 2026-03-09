@@ -1,13 +1,18 @@
 import express from 'express';
 import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { handleIncomingCall, handleGather, handleCallStatus } from './callHandler.js';
 import { getCallLogs, getCallDetails } from './callLogger.js';
 
 config();
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.static(join(__dirname, '../public')));
 
 const PORT = process.env.PORT || 3000;
 
