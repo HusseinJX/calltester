@@ -320,13 +320,6 @@
 
       if (changed) renderCallList();
 
-      // Refresh active transcript if call is in-progress
-      if (selectedCallSid) {
-        const active = calls.find(c => c.callSid === selectedCallSid);
-        if (active?.status === 'in-progress') {
-          renderTranscript(selectedCallSid);
-        }
-      }
     } catch (e) {}
   }
 
@@ -447,9 +440,12 @@
     return (str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  // Poll every 2 seconds
   fetchCalls();
-  setInterval(fetchCalls, 2000);
+  setInterval(async () => {
+    await fetchCalls();
+    const hasActive = calls.some(c => !['completed','failed','no-answer','busy','canceled'].includes(c.status));
+    if (hasActive && selectedCallSid) renderTranscript(selectedCallSid);
+  }, 300);
 </script>
 </body>
 </html>
