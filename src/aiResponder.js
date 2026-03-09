@@ -1,9 +1,16 @@
 import OpenAI from 'openai';
 import { getCallDetails } from './callLogger.js';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+let openai = null;
+
+function getClient() {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+  }
+  return openai;
+}
 
 export async function generateResponse(callSid, agentMessage, persona) {
   const callData = getCallDetails(callSid);
@@ -40,7 +47,7 @@ IMPORTANT RULES:
   });
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getClient().chat.completions.create({
       model: process.env.AI_MODEL || 'gpt-4o',
       max_tokens: 150,
       messages: messages
