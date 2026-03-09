@@ -352,9 +352,11 @@
     renderTranscript(callSid);
   }
 
+  let renderedCallSid = null;
+  let renderedMsgCount = 0;
+
   async function renderTranscript(callSid) {
     const main = document.getElementById('main');
-    const call = calls.find(c => c.callSid === callSid);
 
     try {
       const res = await fetch(`/api/calls/${callSid}`);
@@ -363,58 +365,73 @@
         return;
       }
       const detail = await res.json();
+      const isActive = !['completed','failed','no-answer','busy','canceled'].includes(detail.status);
 
-      const statusClass = `status-${detail.status}`;
-
-      main.innerHTML = `
-        <div class="transcript-header">
-          <div class="transcript-header-left">
-            <h2>${detail.from || 'Unknown'} → ${detail.to || 'Unknown'}</h2>
-            <p>${detail.callSid} · ${formatTime(detail.startTime)}</p>
+      // Full render when switching calls or on first load
+      if (renderedCallSid !== callSid) {
+        renderedCallSid = callSid;
+        renderedMsgCount = 0;
+        main.innerHTML = `
+          <div class="transcript-header" id="transcriptHeader">
+            ${headerHTML(detail)}
           </div>
-          <div class="call-stats">
-            <div class="stat">
-              <div class="stat-value"><span class="call-status ${statusClass}">${detail.status}</span></div>
-              <div class="stat-label">Status</div>
-            </div>
-            ${detail.duration ? `
-            <div class="stat">
-              <div class="stat-value">${detail.duration}s</div>
-              <div class="stat-label">Duration</div>
-            </div>` : ''}
-            <div class="stat">
-              <div class="stat-value">${detail.messages.length}</div>
-              <div class="stat-label">Messages</div>
-            </div>
-            ${!['completed','failed','no-answer','busy','canceled'].includes(detail.status) ? `
-            <button class="hangup-btn" id="hangupBtn" onclick="hangUp('${detail.callSid}')">Hang Up</button>
-            ` : ''}
+          <div class="transcript-body" id="transcriptBody">
+            <div class="no-transcript" id="emptyNote" style="${detail.messages.length ? 'display:none' : ''}">No messages yet</div>
           </div>
-        </div>
-        <div class="transcript-body" id="transcriptBody">
-          ${detail.messages.length === 0
-            ? '<div class="no-transcript">No messages yet</div>'
-            : detail.messages.map(msg => `
-              <div class="message ${msg.role}">
-                <div class="message-avatar">${msg.role === 'agent' ? 'AI' : 'T'}</div>
-                <div>
-                  <div class="message-bubble">${escapeHtml(msg.content)}</div>
-                  <div class="message-time">${msg.role === 'agent' ? 'AI Agent' : 'Tester'} · ${formatTime(msg.timestamp)}</div>
-                </div>
-              </div>
-            `).join('')
-          }
-        </div>
-      `;
+        `;
+      }
 
-      // Scroll to bottom
+      // Update header (status, hangup button)
+      const header = document.getElementById('transcriptHeader');
+      if (header) header.innerHTML = headerHTML(detail);
+
+      // Append only new messages
       const body = document.getElementById('transcriptBody');
-      if (body) body.scrollTop = body.scrollHeight;
+      if (body && detail.messages.length > renderedMsgCount) {
+        const emptyNote = document.getElementById('emptyNote');
+        if (emptyNote) emptyNote.style.display = 'none';
+
+        const newMsgs = detail.messages.slice(renderedMsgCount);
+        newMsgs.forEach(msg => {
+          const el = document.createElement('div');
+          el.className = `message ${msg.role}`;
+          el.innerHTML = `
+            <div class="message-avatar">${msg.role === 'agent' ? 'AI' : 'T'}</div>
+            <div>
+              <div class="message-bubble">${escapeHtml(msg.content)}</div>
+              <div class="message-time">${msg.role === 'agent' ? 'AI Agent' : 'Tester'} · ${formatTime(msg.timestamp)}</div>
+            </div>`;
+          body.appendChild(el);
+        });
+        renderedMsgCount = detail.messages.length;
+        body.scrollTop = body.scrollHeight;
+      }
 
     } catch (e) {
       console.error('renderTranscript error:', e);
-      main.innerHTML = `<div class="main-placeholder"><p>Error: ${e.message}</p></div>`;
     }
+  }
+
+  function headerHTML(detail) {
+    const statusClass = `status-${detail.status}`;
+    const isActive = !['completed','failed','no-answer','busy','canceled'].includes(detail.status);
+    return `
+      <div class="transcript-header-left">
+        <h2>${detail.from || 'Unknown'} → ${detail.to || 'Unknown'}</h2>
+        <p>${detail.callSid} · ${formatTime(detail.startTime)}</p>
+      </div>
+      <div class="call-stats">
+        <div class="stat">
+          <div class="stat-value"><span class="call-status ${statusClass}">${detail.status}</span></div>
+          <div class="stat-label">Status</div>
+        </div>
+        ${detail.duration ? `<div class="stat"><div class="stat-value">${detail.duration}s</div><div class="stat-label">Duration</div></div>` : ''}
+        <div class="stat">
+          <div class="stat-value">${detail.messages.length}</div>
+          <div class="stat-label">Messages</div>
+        </div>
+        ${isActive ? `<button class="hangup-btn" id="hangupBtn" onclick="hangUp('${detail.callSid}')">Hang Up</button>` : ''}
+      </div>`;
   }
 
   async function hangUp(callSid) {
