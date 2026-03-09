@@ -105,8 +105,11 @@
 
     .status-completed { background: #14532d; color: #4ade80; }
     .status-in-progress { background: #1e3a5f; color: #60a5fa; }
+    .status-ringing { background: #1e3a5f; color: #60a5fa; }
     .status-failed { background: #450a0a; color: #f87171; }
     .status-no-answer { background: #292524; color: #a8a29e; }
+    .status-busy { background: #292524; color: #a8a29e; }
+    .status-canceled { background: #292524; color: #a8a29e; }
 
     .call-meta {
       font-size: 11px;
@@ -161,9 +164,25 @@
       color: #555;
     }
 
+    .hangup-btn {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .hangup-btn:hover { background: #991b1b; }
+    .hangup-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
     .call-stats {
       display: flex;
       gap: 16px;
+      align-items: center;
     }
 
     .stat {
@@ -324,7 +343,7 @@
            onclick="selectCall('${call.callSid}')">
         <div class="call-item-top">
           <span class="call-from">${call.from || 'Unknown'}</span>
-          <span class="call-status status-${call.status.replace('-', '-')}">${call.status}</span>
+          <span class="call-status status-${call.status}">${call.status}</span>
         </div>
         <div class="call-meta">
           ${formatTime(call.startTime)} · ${call.messageCount} messages
@@ -374,6 +393,9 @@
               <div class="stat-value">${detail.messages.length}</div>
               <div class="stat-label">Messages</div>
             </div>
+            ${!['completed','failed','no-answer','busy','canceled'].includes(detail.status) ? `
+            <button class="hangup-btn" id="hangupBtn" onclick="hangUp('${detail.callSid}')">Hang Up</button>
+            ` : ''}
           </div>
         </div>
         <div class="transcript-body" id="transcriptBody">
@@ -399,6 +421,19 @@
     } catch (e) {
       console.error('renderTranscript error:', e);
       main.innerHTML = `<div class="main-placeholder"><p>Error: ${e.message}</p></div>`;
+    }
+  }
+
+  async function hangUp(callSid) {
+    const btn = document.getElementById('hangupBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Hanging up...'; }
+    try {
+      const res = await fetch(`/api/calls/${callSid}/hangup`, { method: 'POST' });
+      if (!res.ok) throw new Error((await res.json()).error);
+      renderTranscript(callSid);
+    } catch (e) {
+      alert('Failed to hang up: ' + e.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Hang Up'; }
     }
   }
 

@@ -2,8 +2,9 @@ import express from 'express';
 import { config } from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import twilio from 'twilio';
 import { handleIncomingCall, handleGather, handleCallStatus } from './callHandler.js';
-import { getCallLogs, getCallDetails } from './callLogger.js';
+import { getCallLogs, getCallDetails, endCall } from './callLogger.js';
 
 config();
 
@@ -37,6 +38,19 @@ app.get('/api/calls/:callSid', (req, res) => {
     res.json(call);
   } else {
     res.status(404).json({ error: 'Call not found' });
+  }
+});
+
+// API: Hang up a call
+app.post('/api/calls/:callSid/hangup', async (req, res) => {
+  const { callSid } = req.params;
+  try {
+    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    await client.calls(callSid).update({ status: 'completed' });
+    endCall(callSid, 'completed');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
