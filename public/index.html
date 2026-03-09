@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Call Tester</title>
+  <title>Call Answering</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -14,6 +14,7 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
     header {
@@ -22,40 +23,29 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-shrink: 0;
     }
 
-    header h1 {
-      font-size: 16px;
-      font-weight: 600;
-      color: #fff;
-    }
+    header h1 { font-size: 16px; font-weight: 600; color: #fff; }
 
     .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
+      width: 8px; height: 8px; border-radius: 50%;
       background: #22c55e;
       animation: pulse 2s infinite;
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-    .layout {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
+    .layout { display: flex; flex: 1; overflow: hidden; }
 
     /* Sidebar */
     .sidebar {
-      width: 300px;
+      width: 280px;
       border-right: 1px solid #222;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      flex-shrink: 0;
     }
 
     .sidebar-header {
@@ -66,12 +56,10 @@
       letter-spacing: 0.08em;
       color: #666;
       border-bottom: 1px solid #222;
+      flex-shrink: 0;
     }
 
-    .call-list {
-      flex: 1;
-      overflow-y: auto;
-    }
+    .call-list { flex: 1; overflow-y: auto; }
 
     .call-item {
       padding: 14px 16px;
@@ -90,11 +78,7 @@
       margin-bottom: 4px;
     }
 
-    .call-from {
-      font-size: 13px;
-      font-weight: 500;
-      color: #e0e0e0;
-    }
+    .call-from { font-size: 13px; font-weight: 500; color: #e0e0e0; }
 
     .call-status {
       font-size: 10px;
@@ -103,18 +87,15 @@
       font-weight: 500;
     }
 
-    .status-completed { background: #14532d; color: #4ade80; }
+    .status-completed   { background: #14532d; color: #4ade80; }
     .status-in-progress { background: #1e3a5f; color: #60a5fa; }
-    .status-ringing { background: #1e3a5f; color: #60a5fa; }
-    .status-failed { background: #450a0a; color: #f87171; }
-    .status-no-answer { background: #292524; color: #a8a29e; }
-    .status-busy { background: #292524; color: #a8a29e; }
-    .status-canceled { background: #292524; color: #a8a29e; }
+    .status-ringing     { background: #78350f; color: #fbbf24; animation: pulse 1s infinite; }
+    .status-failed      { background: #450a0a; color: #f87171; }
+    .status-no-answer   { background: #292524; color: #a8a29e; }
+    .status-busy        { background: #292524; color: #a8a29e; }
+    .status-canceled    { background: #292524; color: #a8a29e; }
 
-    .call-meta {
-      font-size: 11px;
-      color: #555;
-    }
+    .call-meta { font-size: 11px; color: #555; }
 
     .empty-list {
       padding: 40px 16px;
@@ -124,12 +105,7 @@
     }
 
     /* Main content */
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
     .main-placeholder {
       flex: 1;
@@ -144,63 +120,34 @@
     .main-placeholder svg { opacity: 0.3; }
     .main-placeholder p { font-size: 14px; }
 
+    /* Transcript */
     .transcript-header {
       padding: 16px 24px;
       border-bottom: 1px solid #222;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-shrink: 0;
     }
 
-    .transcript-header-left h2 {
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 2px;
-    }
+    .transcript-header-left h2 { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .transcript-header-left p  { font-size: 11px; color: #555; }
 
-    .transcript-header-left p {
-      font-size: 11px;
-      color: #555;
-    }
+    .header-right { display: flex; gap: 16px; align-items: center; }
 
     .hangup-btn {
-      background: #7f1d1d;
-      color: #fca5a5;
-      border: none;
-      padding: 7px 14px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
+      background: #7f1d1d; color: #fca5a5;
+      border: none; padding: 7px 14px;
+      border-radius: 6px; font-size: 12px;
+      font-weight: 600; cursor: pointer;
       transition: background 0.1s;
     }
-
     .hangup-btn:hover { background: #991b1b; }
     .hangup-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .call-stats {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-    }
-
-    .stat {
-      text-align: right;
-    }
-
-    .stat-value {
-      font-size: 13px;
-      font-weight: 600;
-      color: #e0e0e0;
-    }
-
-    .stat-label {
-      font-size: 10px;
-      color: #555;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+    .stat { text-align: right; }
+    .stat-value { font-size: 13px; font-weight: 600; color: #e0e0e0; }
+    .stat-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; }
 
     .transcript-body {
       flex: 1;
@@ -211,30 +158,20 @@
       gap: 12px;
     }
 
-    .message {
-      display: flex;
-      gap: 10px;
-      max-width: 75%;
-    }
-
-    .message.agent { align-self: flex-start; }
-    .message.tester { align-self: flex-end; flex-direction: row-reverse; }
+    .message { display: flex; gap: 10px; max-width: 75%; }
+    .message.caller { align-self: flex-start; }
+    .message.tester  { align-self: flex-end; flex-direction: row-reverse; }
 
     .message-avatar {
-      width: 28px;
-      height: 28px;
+      width: 28px; height: 28px;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 700;
-      flex-shrink: 0;
-      margin-top: 2px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+      flex-shrink: 0; margin-top: 2px;
     }
 
-    .message.agent .message-avatar { background: #1e3a5f; color: #60a5fa; }
-    .message.tester .message-avatar { background: #14532d; color: #4ade80; }
+    .message.caller .message-avatar { background: #1e3a5f; color: #60a5fa; }
+    .message.tester  .message-avatar { background: #14532d; color: #4ade80; }
 
     .message-bubble {
       padding: 10px 14px;
@@ -243,34 +180,169 @@
       line-height: 1.5;
     }
 
-    .message.agent .message-bubble {
-      background: #1a1a1a;
-      color: #e0e0e0;
+    .message.caller .message-bubble {
+      background: #1a1a1a; color: #e0e0e0;
       border-top-left-radius: 3px;
     }
 
     .message.tester .message-bubble {
-      background: #1a2744;
-      color: #e0e0e0;
+      background: #1a2744; color: #e0e0e0;
       border-top-right-radius: 3px;
     }
 
-    .message-time {
-      font-size: 10px;
-      color: #444;
-      margin-top: 4px;
-    }
-
+    .message-time { font-size: 10px; color: #444; margin-top: 4px; }
     .message.tester .message-time { text-align: right; }
 
     .no-transcript {
-      flex: 1;
+      flex: 1; display: flex;
+      align-items: center; justify-content: center;
+      color: #444; font-size: 13px;
+    }
+
+    /* Audio indicator */
+    .audio-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #1a1a2e;
+      border-top: 1px solid #222;
+      font-size: 12px;
+      color: #60a5fa;
+      flex-shrink: 0;
+    }
+
+    .audio-indicator.active { display: flex; }
+
+    .audio-bars {
       display: flex;
+      gap: 2px;
+      align-items: center;
+      height: 16px;
+    }
+
+    .audio-bar {
+      width: 3px;
+      background: #60a5fa;
+      border-radius: 2px;
+      animation: audioBounce 0.6s ease infinite alternate;
+    }
+
+    .audio-bar:nth-child(2) { animation-delay: 0.15s; }
+    .audio-bar:nth-child(3) { animation-delay: 0.3s; }
+    .audio-bar:nth-child(4) { animation-delay: 0.45s; }
+
+    @keyframes audioBounce {
+      from { height: 4px; }
+      to   { height: 14px; }
+    }
+
+    /* Text input */
+    .input-row {
+      display: none;
+      padding: 12px 16px;
+      border-top: 1px solid #222;
+      gap: 10px;
+      align-items: flex-end;
+      flex-shrink: 0;
+      background: #0f0f0f;
+    }
+
+    .input-row.visible { display: flex; }
+
+    #messageInput {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: 14px;
+      padding: 10px 14px;
+      resize: none;
+      max-height: 120px;
+      font-family: inherit;
+      line-height: 1.4;
+      outline: none;
+    }
+
+    #messageInput:focus { border-color: #3b82f6; }
+    #messageInput::placeholder { color: #444; }
+
+    .send-btn {
+      background: #1d4ed8;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.1s;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover { background: #2563eb; }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Incoming call overlay */
+    #incomingOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
       align-items: center;
       justify-content: center;
-      color: #444;
-      font-size: 13px;
     }
+
+    #incomingOverlay.visible { display: flex; }
+
+    .incoming-card {
+      background: #161616;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 40px 48px;
+      text-align: center;
+      min-width: 320px;
+    }
+
+    .incoming-ring {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: #14532d;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      animation: ringPulse 1s ease infinite;
+    }
+
+    @keyframes ringPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+      50%       { box-shadow: 0 0 0 16px rgba(34,197,94,0); }
+    }
+
+    .incoming-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .incoming-from  { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .incoming-to    { font-size: 13px; color: #555; margin-bottom: 32px; }
+
+    .incoming-actions { display: flex; gap: 16px; justify-content: center; }
+
+    .accept-btn {
+      background: #15803d; color: #fff;
+      border: none; border-radius: 999px;
+      padding: 14px 32px; font-size: 15px;
+      font-weight: 600; cursor: pointer;
+      transition: background 0.1s;
+    }
+    .accept-btn:hover { background: #16a34a; }
+
+    .decline-btn {
+      background: #7f1d1d; color: #fca5a5;
+      border: none; border-radius: 999px;
+      padding: 14px 32px; font-size: 15px;
+      font-weight: 600; cursor: pointer;
+      transition: background 0.1s;
+    }
+    .decline-btn:hover { background: #991b1b; }
 
     /* Scrollbar */
     ::-webkit-scrollbar { width: 4px; }
@@ -280,9 +352,27 @@
 </head>
 <body>
 
+<!-- Incoming call overlay -->
+<div id="incomingOverlay">
+  <div class="incoming-card">
+    <div class="incoming-ring">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.64A2 2 0 012 .92h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+      </svg>
+    </div>
+    <div class="incoming-label">Incoming Call</div>
+    <div class="incoming-from" id="incomingFrom">Unknown</div>
+    <div class="incoming-to" id="incomingTo"></div>
+    <div class="incoming-actions">
+      <button class="accept-btn" onclick="acceptCall()">Accept</button>
+      <button class="decline-btn" onclick="declineCall()">Decline</button>
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="status-dot"></div>
-  <h1>Call Tester</h1>
+  <h1>Call Answering</h1>
 </header>
 
 <div class="layout">
@@ -304,42 +394,218 @@
 </div>
 
 <script>
+  // ─── State ────────────────────────────────────────────────────────────────
   let selectedCallSid = null;
-  let calls = [];
+  let activeCallSid   = null; // currently accepted/live call
+  let pendingCallSid  = null; // ringing, not yet accepted
+  let pendingFrom     = null;
+  let pendingTo       = null;
+  let calls           = [];
+  let renderedCallSid = null;
+  let renderedMsgCount = 0;
 
+  // ─── WebSocket to server ──────────────────────────────────────────────────
+  let ws = null;
+
+  function connectWs() {
+    const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+    ws = new WebSocket(url);
+
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'incoming') {
+        showIncoming(msg.callSid, msg.from, msg.to);
+      } else if (msg.type === 'audio') {
+        if (msg.callSid === activeCallSid) playMulaw(msg.payload);
+      } else if (msg.type === 'call_status') {
+        if (msg.callSid === activeCallSid && ['completed','failed','no-answer','busy','canceled'].includes(msg.status)) {
+          activeCallSid = null;
+          setInputVisible(false);
+          setAudioIndicator(false);
+        }
+        fetchCalls();
+      }
+    };
+
+    ws.onclose = () => setTimeout(connectWs, 2000);
+    ws.onerror = () => ws.close();
+  }
+
+  connectWs();
+
+  // ─── Incoming call UI ─────────────────────────────────────────────────────
+  function showIncoming(callSid, from, to) {
+    // Only show if not already handling a live call
+    if (activeCallSid) return;
+    pendingCallSid = callSid;
+    pendingFrom    = from;
+    pendingTo      = to;
+    document.getElementById('incomingFrom').textContent = from || 'Unknown';
+    document.getElementById('incomingTo').textContent   = to ? `→ ${to}` : '';
+    document.getElementById('incomingOverlay').classList.add('visible');
+    fetchCalls();
+  }
+
+  async function acceptCall() {
+    if (!pendingCallSid) return;
+    document.getElementById('incomingOverlay').classList.remove('visible');
+
+    // Resume AudioContext (needs user gesture)
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    if (!audioCtx) audioCtx = new AudioContext();
+
+    activeCallSid = pendingCallSid;
+    pendingCallSid = null;
+
+    setInputVisible(true);
+    selectCall(activeCallSid);
+
+    try {
+      const res = await fetch(`/api/calls/${activeCallSid}/accept`, { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json();
+        alert('Failed to accept: ' + err.error);
+        activeCallSid = null;
+        setInputVisible(false);
+      }
+    } catch (e) {
+      alert('Failed to accept: ' + e.message);
+      activeCallSid = null;
+      setInputVisible(false);
+    }
+  }
+
+  async function declineCall() {
+    document.getElementById('incomingOverlay').classList.remove('visible');
+    if (pendingCallSid) {
+      try {
+        await fetch(`/api/calls/${pendingCallSid}/hangup`, { method: 'POST' });
+      } catch (e) {}
+    }
+    pendingCallSid = null;
+    fetchCalls();
+  }
+
+  // ─── Text input ───────────────────────────────────────────────────────────
+  function setInputVisible(show) {
+    const row = document.getElementById('inputRow');
+    if (row) row.classList.toggle('visible', show);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    // Focus input on any key if call is active and input not focused
+    const input = document.getElementById('messageInput');
+    if (activeCallSid && input && document.activeElement !== input && !e.metaKey && !e.ctrlKey) {
+      if (e.key.length === 1) { input.focus(); }
+    }
+  });
+
+  async function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const btn   = document.getElementById('sendBtn');
+    const text  = input.value.trim();
+    if (!text || !activeCallSid) return;
+
+    input.value = '';
+    input.style.height = '';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(`/api/calls/${activeCallSid}/say`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert('Failed to send: ' + err.error);
+      } else {
+        renderTranscript(activeCallSid);
+      }
+    } catch (e) {
+      alert('Failed to send: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      input.focus();
+    }
+  }
+
+  // ─── Audio: G.711 μ-law decode + Web Audio API ────────────────────────────
+  let audioCtx     = null;
+  let nextPlayTime = 0;
+  let audioActive  = false;
+  let audioTimeout = null;
+
+  function playMulaw(base64) {
+    if (!audioCtx) return;
+
+    // Decode base64 → bytes
+    const raw = atob(base64);
+    const mulaw = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) mulaw[i] = raw.charCodeAt(i);
+
+    // Decode μ-law → float32 PCM
+    const pcm = new Float32Array(mulaw.length);
+    for (let i = 0; i < mulaw.length; i++) {
+      const u = (~mulaw[i]) & 0xFF;
+      const sign = u & 0x80;
+      const exp  = (u >> 4) & 0x07;
+      const mant = u & 0x0F;
+      const mag  = ((mant << 1) + 33) << (exp + 2);
+      pcm[i] = (sign ? -mag : mag) / 32768.0;
+    }
+
+    // Create and schedule AudioBuffer
+    const buffer = audioCtx.createBuffer(1, pcm.length, 8000);
+    buffer.getChannelData(0).set(pcm);
+
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+    const start = Math.max(nextPlayTime, now + 0.05);
+    source.start(start);
+    nextPlayTime = start + buffer.duration;
+
+    // Show audio indicator
+    if (!audioActive) { audioActive = true; setAudioIndicator(true); }
+    clearTimeout(audioTimeout);
+    audioTimeout = setTimeout(() => { audioActive = false; setAudioIndicator(false); }, 1000);
+  }
+
+  function setAudioIndicator(on) {
+    const el = document.getElementById('audioIndicator');
+    if (el) el.classList.toggle('active', on);
+  }
+
+  // ─── Call list ────────────────────────────────────────────────────────────
   async function fetchCalls() {
     try {
       const res = await fetch('/api/calls');
       const data = await res.json();
-
-      // Sort newest first
       data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-
       const changed = JSON.stringify(data) !== JSON.stringify(calls);
       calls = data;
-
       if (changed) renderCallList();
-
     } catch (e) {}
   }
 
   function renderCallList() {
     const list = document.getElementById('callList');
-
     if (calls.length === 0) {
       list.innerHTML = '<div class="empty-list">No calls yet.<br>Waiting for inbound calls...</div>';
       return;
     }
-
     list.innerHTML = calls.map(call => `
       <div class="call-item ${call.callSid === selectedCallSid ? 'active' : ''}"
            onclick="selectCall('${call.callSid}')">
         <div class="call-item-top">
-          <span class="call-from">${call.from || 'Unknown'}</span>
+          <span class="call-from">${escapeHtml(call.from || 'Unknown')}</span>
           <span class="call-status status-${call.status}">${call.status}</span>
         </div>
         <div class="call-meta">
-          ${formatTime(call.startTime)} · ${call.messageCount} messages
+          ${formatTime(call.startTime)} · ${call.messageCount} msg${call.messageCount !== 1 ? 's' : ''}
           ${call.duration ? ` · ${call.duration}s` : ''}
         </div>
       </div>
@@ -349,57 +615,82 @@
   async function selectCall(callSid) {
     selectedCallSid = callSid;
     renderCallList();
-    renderTranscript(callSid);
+    await renderTranscript(callSid);
   }
 
-  let renderedCallSid = null;
-  let renderedMsgCount = 0;
-
+  // ─── Transcript ───────────────────────────────────────────────────────────
   async function renderTranscript(callSid) {
     const main = document.getElementById('main');
-
     try {
       const res = await fetch(`/api/calls/${callSid}`);
       if (!res.ok) {
-        main.innerHTML = `<div class="main-placeholder"><p>Call not found (server may have restarted)</p></div>`;
+        main.innerHTML = `<div class="main-placeholder"><p>Call not found</p></div>`;
         return;
       }
       const detail = await res.json();
       const isActive = !['completed','failed','no-answer','busy','canceled'].includes(detail.status);
 
-      // Full render when switching calls or on first load
+      // Full render on call switch
       if (renderedCallSid !== callSid) {
-        renderedCallSid = callSid;
+        renderedCallSid  = callSid;
         renderedMsgCount = 0;
+
+        const isLive = callSid === activeCallSid;
+
         main.innerHTML = `
           <div class="transcript-header" id="transcriptHeader">
             ${headerHTML(detail)}
           </div>
           <div class="transcript-body" id="transcriptBody">
-            <div class="no-transcript" id="emptyNote" style="${detail.messages.length ? 'display:none' : ''}">No messages yet</div>
+            <div class="no-transcript" id="emptyNote" style="${detail.messages.length ? 'display:none' : ''}">
+              No messages yet
+            </div>
+          </div>
+          <div class="audio-indicator" id="audioIndicator">
+            <div class="audio-bars">
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+            </div>
+            Caller is speaking
+          </div>
+          <div class="input-row ${isLive ? 'visible' : ''}" id="inputRow">
+            <textarea id="messageInput" rows="1" placeholder="Type your message, press Enter to send..."
+              oninput="autoResize(this)"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
           </div>
         `;
+
+        if (isLive) {
+          setTimeout(() => {
+            const input = document.getElementById('messageInput');
+            if (input) input.focus();
+          }, 50);
+        }
       }
 
-      // Update header (status, hangup button)
+      // Update header
       const header = document.getElementById('transcriptHeader');
       if (header) header.innerHTML = headerHTML(detail);
 
-      // Append only new messages
+      // Append new messages
       const body = document.getElementById('transcriptBody');
       if (body && detail.messages.length > renderedMsgCount) {
         const emptyNote = document.getElementById('emptyNote');
         if (emptyNote) emptyNote.style.display = 'none';
 
-        const newMsgs = detail.messages.slice(renderedMsgCount);
-        newMsgs.forEach(msg => {
+        detail.messages.slice(renderedMsgCount).forEach(msg => {
           const el = document.createElement('div');
-          el.className = `message ${msg.role}`;
+          // Map roles: 'tester' = you (right), anything else = caller (left)
+          const side = msg.role === 'tester' ? 'tester' : 'caller';
+          el.className = `message ${side}`;
           el.innerHTML = `
-            <div class="message-avatar">${msg.role === 'agent' ? 'AI' : 'T'}</div>
+            <div class="message-avatar">${side === 'tester' ? 'You' : 'C'}</div>
             <div>
               <div class="message-bubble">${escapeHtml(msg.content)}</div>
-              <div class="message-time">${msg.role === 'agent' ? 'AI Agent' : 'Tester'} · ${formatTime(msg.timestamp)}</div>
+              <div class="message-time">${side === 'tester' ? 'You' : 'Caller'} · ${formatTime(msg.timestamp)}</div>
             </div>`;
           body.appendChild(el);
         });
@@ -413,16 +704,15 @@
   }
 
   function headerHTML(detail) {
-    const statusClass = `status-${detail.status}`;
     const isActive = !['completed','failed','no-answer','busy','canceled'].includes(detail.status);
     return `
       <div class="transcript-header-left">
-        <h2>${detail.from || 'Unknown'} → ${detail.to || 'Unknown'}</h2>
+        <h2>${escapeHtml(detail.from || 'Unknown')} → ${escapeHtml(detail.to || 'Unknown')}</h2>
         <p>${detail.callSid} · ${formatTime(detail.startTime)}</p>
       </div>
-      <div class="call-stats">
+      <div class="header-right">
         <div class="stat">
-          <div class="stat-value"><span class="call-status ${statusClass}">${detail.status}</span></div>
+          <div class="stat-value"><span class="call-status status-${detail.status}">${detail.status}</span></div>
           <div class="stat-label">Status</div>
         </div>
         ${detail.duration ? `<div class="stat"><div class="stat-value">${detail.duration}s</div><div class="stat-label">Duration</div></div>` : ''}
@@ -440,6 +730,11 @@
     try {
       const res = await fetch(`/api/calls/${callSid}/hangup`, { method: 'POST' });
       if (!res.ok) throw new Error((await res.json()).error);
+      if (callSid === activeCallSid) {
+        activeCallSid = null;
+        setInputVisible(false);
+        setAudioIndicator(false);
+      }
       renderTranscript(callSid);
     } catch (e) {
       alert('Failed to hang up: ' + e.message);
@@ -447,22 +742,31 @@
     }
   }
 
+  function autoResize(el) {
+    el.style.height = '';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
   function formatTime(iso) {
     if (!iso) return '';
-    const d = new Date(iso);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
 
   function escapeHtml(str) {
     return (str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  // ─── Polling (for call list + transcript updates) ─────────────────────────
   fetchCalls();
   setInterval(async () => {
     await fetchCalls();
-    const hasActive = calls.some(c => !['completed','failed','no-answer','busy','canceled'].includes(c.status));
-    if (hasActive && selectedCallSid) renderTranscript(selectedCallSid);
-  }, 300);
+    if (selectedCallSid) {
+      const call = calls.find(c => c.callSid === selectedCallSid);
+      const isActive = call && !['completed','failed','no-answer','busy','canceled'].includes(call.status);
+      if (isActive) renderTranscript(selectedCallSid);
+    }
+  }, 500);
 </script>
 </body>
 </html>
