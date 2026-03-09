@@ -16,55 +16,41 @@ export async function generateResponse(callSid, agentMessage, persona) {
   const callData = getCallDetails(callSid);
   const conversationHistory = callData?.messages || [];
 
-  // Build conversation context for OpenAI
+  // Build messages — exclude the last entry since it's the agent message
+  // we're about to respond to (already added to history before this call)
+  const history = conversationHistory.slice(0, -1);
+
   const messages = [
     {
       role: 'system',
       content: `${persona}
 
-IMPORTANT RULES:
-- Keep responses SHORT (1-2 sentences max) - this is a phone call
-- Be conversational and natural
-- Don't use emojis or special characters
-- Don't say "um" or "uh" - just speak naturally
-- If the agent asks a question, answer it directly
-- If you want to end the call naturally, say goodbye`
+CRITICAL: This is a phone call. Your response must be 1-5 words maximum. No exceptions.
+- Answer questions with the shortest possible reply: "Yes.", "No.", "Sure.", "Uh huh.", "How much?", "Okay."
+- Never explain or elaborate
+- No emojis, no special characters
+- If you want to end the call, just say "Bye bye."`
     }
   ];
 
-  // Add conversation history
-  conversationHistory.forEach(msg => {
+  history.forEach(msg => {
     messages.push({
       role: msg.role === 'tester' ? 'assistant' : 'user',
-      content: msg.content
+      content: msg.content ?? ''
     });
   });
 
-  // Add the latest agent message
-  messages.push({
-    role: 'user',
-    content: agentMessage
+  messages.push({ role: 'user', content: agentMessage });
+
+  console.log(`\n🧠 Sending to OpenAI (${messages.length} messages, model: ${process.env.AI_MODEL || 'gpt-4o'})`);
+
+  const response = await getClient().chat.completions.create({
+    model: process.env.AI_MODEL || 'gpt-4o',
+    max_tokens: 30,
+    messages
   });
 
-  try {
-    const response = await getClient().chat.completions.create({
-      model: process.env.AI_MODEL || 'gpt-4o',
-      max_tokens: 150,
-      messages: messages
-    });
-
-    return response.choices[0].message.content;
-  } catch (error) {
-    console.error('AI Error:', error.message);
-
-    // Fallback responses
-    const fallbacks = [
-      "Could you tell me more about that?",
-      "I see, go on.",
-      "That's interesting.",
-      "Okay, what else can you tell me?"
-    ];
-
-    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
-  }
+  const reply = response.choices[0].message.content;
+  console.log(`✅ OpenAI replied: "${reply}"`);
+  return reply;
 }
