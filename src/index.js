@@ -176,7 +176,10 @@ function handleTwilioMediaStream(ws) {
 
         // Also accumulate audio for transcription so we can show
         // what the caller is saying in the chat transcript.
-        if (openai) {
+        // IMPORTANT: Only do this in AI auto-answer mode; in
+        // manual tester mode we avoid this extra work to keep
+        // audio playback smooth and low-latency.
+        if (openai && getAnswerMode() === 'ai') {
           const chunk = Buffer.from(msg.media.payload, 'base64');
           mulawChunks.push(chunk);
           mulawBytes += chunk.length;

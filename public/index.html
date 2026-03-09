@@ -159,7 +159,10 @@
     }
 
     .message { display: flex; gap: 10px; max-width: 75%; }
+    /* Left side bubbles (AI agent or caller) */
+    .message.agent,
     .message.caller { align-self: flex-start; }
+    /* Right side bubbles (tester / you) */
     .message.tester  { align-self: flex-end; flex-direction: row-reverse; }
 
     .message-avatar {
@@ -170,6 +173,7 @@
       flex-shrink: 0; margin-top: 2px;
     }
 
+    .message.agent .message-avatar,
     .message.caller .message-avatar { background: #1e3a5f; color: #60a5fa; }
     .message.tester  .message-avatar { background: #14532d; color: #4ade80; }
 
@@ -180,6 +184,7 @@
       line-height: 1.5;
     }
 
+    .message.agent .message-bubble,
     .message.caller .message-bubble {
       background: #1a1a1a; color: #e0e0e0;
       border-top-left-radius: 3px;
@@ -765,30 +770,40 @@
         const emptyNote = document.getElementById('emptyNote');
         if (emptyNote) emptyNote.style.display = 'none';
 
+        const isAiMode = answerMode === 'ai';
+
         detail.messages.slice(renderedMsgCount).forEach(msg => {
           const el = document.createElement('div');
 
-          // Layout:
-          // - In AI mode: "agent" messages on the right, caller/tester on the left
-          // - In manual mode: anything that isn't an explicit "caller" is treated as you
-          const isAiMode = answerMode === 'ai';
-          const isRight = isAiMode ? (msg.role === 'agent') : (msg.role !== 'caller');
-          const side = isRight ? 'tester' : 'caller'; // reuse existing CSS classes
-
-          let whoLabel;
           if (isAiMode) {
-            whoLabel = isRight ? 'AI' : 'Caller';
+            // Match original AI mode: "agent" on left, "tester" on right
+            const side = msg.role === 'agent' ? 'agent' : 'tester';
+            const whoLabel = msg.role === 'agent' ? 'AI Agent' : 'Tester';
+            const avatar = msg.role === 'agent' ? 'AI' : 'T';
+
+            el.className = `message ${side}`;
+            el.innerHTML = `
+              <div class="message-avatar">${avatar}</div>
+              <div>
+                <div class="message-bubble">${escapeHtml(msg.content)}</div>
+                <div class="message-time">${whoLabel} · ${formatTime(msg.timestamp)}</div>
+              </div>`;
           } else {
-            whoLabel = isRight ? 'You' : 'Caller';
+            // Manual mode: caller on left, you on right
+            const isCaller = msg.role === 'caller';
+            const side = isCaller ? 'caller' : 'tester';
+            const whoLabel = isCaller ? 'Caller' : 'You';
+            const avatar = isCaller ? 'C' : 'You';
+
+            el.className = `message ${side}`;
+            el.innerHTML = `
+              <div class="message-avatar">${avatar}</div>
+              <div>
+                <div class="message-bubble">${escapeHtml(msg.content)}</div>
+                <div class="message-time">${whoLabel} · ${formatTime(msg.timestamp)}</div>
+              </div>`;
           }
 
-          el.className = `message ${side}`;
-          el.innerHTML = `
-            <div class="message-avatar">${isRight ? (isAiMode ? 'AI' : 'You') : 'C'}</div>
-            <div>
-              <div class="message-bubble">${escapeHtml(msg.content)}</div>
-              <div class="message-time">${whoLabel} · ${formatTime(msg.timestamp)}</div>
-            </div>`;
           body.appendChild(el);
         });
         renderedMsgCount = detail.messages.length;
