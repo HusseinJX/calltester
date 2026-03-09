@@ -538,6 +538,9 @@
         const err = await res.json();
         alert('Failed to send: ' + err.error);
       } else {
+        // Locally play back the same text so the tester
+        // can hear what was spoken to the caller.
+        speakLocal(text);
         renderTranscript(activeCallSid);
       }
     } catch (e) {
@@ -546,6 +549,14 @@
       btn.disabled = false;
       input.focus();
     }
+  }
+
+  function speakLocal(text) {
+    if (!('speechSynthesis' in window)) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
   }
 
   // ─── Audio: G.711 μ-law decode + Web Audio API ────────────────────────────

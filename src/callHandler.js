@@ -15,9 +15,13 @@ export async function handleIncomingCall(req, res) {
   // Notify browser to show incoming call UI
   notifyBrowsers({ type: 'incoming', callSid: CallSid, from: From, to: To });
 
-  // Answer the call but keep the caller on silent hold while
-  // the tester decides to accept or decline.
+  // Answer the call with a very short greeting so Twilio
+  // considers the call in-progress (so Accept/Decline via
+  // REST API work reliably), then put the caller on hold.
   const response = new VoiceResponse();
+  const voice = process.env.VOICE || 'Polly.Matthew';
+  const greeting = process.env.INITIAL_GREETING || 'Please hold while we connect you.';
+  response.say({ voice }, greeting);
   response.pause({ length: 29 });
   response.redirect({ method: 'POST' }, '/voice/hold');
 
