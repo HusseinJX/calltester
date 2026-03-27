@@ -183,8 +183,10 @@ export function handleCallStatus(req, res) {
 
   if (['completed', 'failed', 'no-answer', 'busy', 'canceled'].includes(CallStatus)) {
     endCall(CallSid, CallStatus, CallDuration);
-    notifyBrowsers({ type: 'call_status', callSid: CallSid, status: CallStatus });
   }
+
+  // Always notify browsers so the call list and status stay in sync
+  notifyBrowsers({ type: 'call_status', callSid: CallSid, status: CallStatus });
 
   res.sendStatus(200);
 }

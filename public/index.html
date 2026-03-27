@@ -49,7 +49,7 @@
     }
 
     .sidebar-header {
-      padding: 14px 16px;
+      padding: 10px 16px;
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
@@ -57,7 +57,56 @@
       color: #666;
       border-bottom: 1px solid #222;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
+
+    .call-btn {
+      background: #1d4ed8;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .call-btn:hover { background: #2563eb; }
+
+    .outbound-form {
+      display: none;
+      padding: 10px 16px;
+      border-bottom: 1px solid #222;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .outbound-form.visible { display: flex; }
+    .outbound-form input {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 13px;
+      padding: 7px 10px;
+      outline: none;
+    }
+    .outbound-form input:focus { border-color: #3b82f6; }
+    .outbound-form button {
+      background: #15803d;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .outbound-form button:hover { background: #16a34a; }
+    .outbound-form button:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .call-list { flex: 1; overflow-y: auto; }
 
@@ -391,7 +440,15 @@
 
 <div class="layout">
   <div class="sidebar">
-    <div class="sidebar-header">Calls</div>
+    <div class="sidebar-header">
+      <span>Calls</span>
+      <button class="call-btn" onclick="toggleOutboundForm()">+ Call</button>
+    </div>
+    <div class="outbound-form" id="outboundForm">
+      <input type="tel" id="outboundNumber" placeholder="+1 555 000 0000"
+        onkeydown="if(event.key==='Enter') dialOutbound()">
+      <button id="dialBtn" onclick="dialOutbound()">Call</button>
+    </div>
     <div class="call-list" id="callList">
       <div class="empty-list">No calls yet.<br>Waiting for inbound calls...</div>
     </div>
@@ -430,6 +487,13 @@
       const msg = JSON.parse(e.data);
       if (msg.type === 'incoming') {
         showIncoming(msg.callSid, msg.from, msg.to);
+      } else if (msg.type === 'outbound_initiated') {
+        // Outbound call placed — treat it as the active call immediately
+        activeCallSid = msg.callSid;
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        if (!audioCtx) audioCtx = new AudioContext();
+        setInputVisible(true);
+        fetchCalls().then(() => selectCall(msg.callSid));
       } else if (msg.type === 'audio') {
         if (msg.callSid === activeCallSid) playMulaw(msg.payload);
       } else if (msg.type === 'call_status') {
@@ -867,6 +931,46 @@
 
   function escapeHtml(str) {
     return (str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ─── Outbound calling ─────────────────────────────────────────────────────
+  function toggleOutboundForm() {
+    const form = document.getElementById('outboundForm');
+    const isVisible = form.classList.toggle('visible');
+    if (isVisible) {
+      document.getElementById('outboundNumber').focus();
+    }
+  }
+
+  async function dialOutbound() {
+    const input = document.getElementById('outboundNumber');
+    const btn   = document.getElementById('dialBtn');
+    const to    = input.value.trim();
+    if (!to) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Dialing...';
+
+    try {
+      const res = await fetch('/api/calls/outbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert('Failed to dial: ' + data.error);
+        return;
+      }
+      // Hide form and clear input on success
+      input.value = '';
+      document.getElementById('outboundForm').classList.remove('visible');
+    } catch (e) {
+      alert('Failed to dial: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Call';
+    }
   }
 
   // ─── Polling (for call list + transcript updates) ─────────────────────────

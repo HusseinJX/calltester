@@ -17,7 +17,7 @@ import {
   handleSay,
   handleCallStatus
 } from './callHandler.js';
-import { getCallLogs, getCallDetails, addMessage, endCall } from './callLogger.js';
+import { getCallLogs, getCallDetails, addMessage, endCall, logCall } from './callLogger.js';
 import { mediaSockets, browserSockets, notifyBrowsers } from './wsState.js';
 import { getAnswerMode, setAnswerMode } from './settings.js';
 
@@ -127,6 +127,32 @@ app.post('/api/calls/:callSid/hangup', async (req, res) => {
     endCall(callSid, 'completed');
     res.json({ success: true });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Initiate an outbound call in tester mode
+app.post('/api/calls/outbound', async (req, res) => {
+  const { to } = req.body;
+  if (!to?.trim()) return res.status(400).json({ error: 'to (phone number) required' });
+  if (!BASE_URL) return res.status(500).json({ error: 'BASE_URL not set in .env' });
+  const from = process.env.TWILIO_PHONE_NUMBER;
+  if (!from) return res.status(500).json({ error: 'TWILIO_PHONE_NUMBER not set in .env' });
+  try {
+    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    const call = await client.calls.create({
+      to: to.trim(),
+      from,
+      url: `${BASE_URL}/voice/stream`,
+      statusCallback: `${BASE_URL}/voice/status`,
+      statusCallbackMethod: 'POST',
+      statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+    });
+    logCall(call.sid, { from, to: to.trim(), status: 'ringing', direction: 'outbound' });
+    notifyBrowsers({ type: 'outbound_initiated', callSid: call.sid, to: to.trim(), from });
+    res.json({ callSid: call.sid });
+  } catch (err) {
+    console.error('Failed to create outbound call:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
