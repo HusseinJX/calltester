@@ -11,6 +11,7 @@ import { tmpdir } from 'os';
 import { join as joinPath } from 'path';
 import {
   handleIncomingCall,
+  handleGather,
   handleHold,
   handleStream,
   handleSay,
@@ -19,7 +20,6 @@ import {
 import { getCallLogs, getCallDetails, addMessage, endCall } from './callLogger.js';
 import { mediaSockets, browserSockets, notifyBrowsers } from './wsState.js';
 import { getAnswerMode, setAnswerMode } from './settings.js';
-import { generateResponse } from './aiResponder.js';
 
 config();
 
@@ -39,6 +39,7 @@ const BASE_URL = process.env.BASE_URL || '';
 
 // Twilio webhooks
 app.post('/voice/incoming', handleIncomingCall);
+app.post('/voice/gather', handleGather);
 app.post('/voice/hold', handleHold);
 app.post('/voice/stream', handleStream);
 app.post('/voice/say', handleSay);
@@ -270,33 +271,9 @@ async function transcribeCallerAudio(callSid, mulawBuffer) {
     const text = (response.text || '').trim();
     if (!text) return;
 
-    // In AI mode, treat the caller as "tester" to match the original
-    // logging semantics (AI agent vs tester). In manual mode, keep
-    // using "caller" so we can distinguish sources.
-    const role = getAnswerMode() === 'ai' ? 'tester' : 'caller';
-
-    addMessage(callSid, role, text);
-    notifyBrowsers({ type: 'transcript', callSid, role, text });
-
-    // In AI mode, let the AI respond automatically using the same
-    // pipeline as the original auto-answer mode.
-    if (getAnswerMode() === 'ai' && process.env.OPENAI_API_KEY && BASE_URL) {
-      try {
-        const persona = process.env.TESTER_PERSONA || 'You are a helpful agent.';
-        const reply = await generateResponse(callSid, text, persona);
-        if (reply?.trim()) {
-          addMessage(callSid, 'agent', reply.trim());
-          const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-          await client.calls(callSid).update({
-            url: `${BASE_URL}/voice/say?text=${encodeURIComponent(reply.trim())}`,
-            method: 'POST'
-          });
-          notifyBrowsers({ type: 'transcript', callSid, role: 'agent', text: reply.trim() });
-        }
-      } catch (err) {
-        console.warn('AI responder error:', err.message);
-      }
-    }
+    // For manual tester mode we could still add transcriptions here
+    // in the future, but for now we skip logging to keep the audio
+    // path as lean and low-latency as possible.
   } catch (err) {
     console.warn('Failed to transcribe audio:', err.message);
   }
